@@ -9,17 +9,16 @@ package org.example;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is the entry point of the application.
  * @since 1.0
  */
-public final class Main {
-    /**
-     * The main class should never be instantiated.
-     */
-    private Main() {
-    }
+public class Main {
+
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
     /**
      * Here we go...
@@ -28,26 +27,28 @@ public final class Main {
     @SuppressWarnings("ProhibitPublicStaticMethods")
     public static void main(final String[] args) {
         final OrderedTimestamps ots = new OrderedTimestamps();
-        if (LoggingBetterParsr.isDebug())
-            LoggingBetterParsr.info("Hi, welcome to the challenge....".getBytes(StandardCharsets.UTF_8));
+
+        if (LoggingBetterParser.isDebug()) {
+            LoggingBetterParser.info("Hi, welcome to the challenge....".getBytes(StandardCharsets.UTF_8));
+        }
         ots.mark("after welcome");
-        final ParserImpl first = new LoggingBetterParsr();
+        final ParserImpl first = new LoggingBetterParser();
         first.setFile(new File("LICENSE.txt"));
         final Parser second = first;
-        String data = null;
+        String data = "";
         try {
             ots.mark();
             data = second.getContentWithoutUnicode();
         } catch (final IOException exception) {
-            exception.printStackTrace();
+            LOGGER.log(Level.SEVERE, exception.getMessage());
         }
         ots.mark("before result");
-        String string;
-        if (LoggingBetterParsr.isDebug()) {
-            string = String.format("Read %d characters.", data.length());
-            LoggingBetterParsr.info(string.getBytes());
+        final String formattedData;
+        if (LoggingBetterParser.isDebug()) {
+            formattedData = String.format("Read %d characters.", data.length());
+            LoggingBetterParser.info(formattedData.getBytes());
         }
-        // logging:
-        System.err.println(ots.stop());
+        String stopMessage = ots.stop();
+        LOGGER.log(Level.SEVERE, stopMessage);
     }
 }

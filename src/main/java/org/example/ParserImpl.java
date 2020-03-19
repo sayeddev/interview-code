@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import jdk.jshell.spi.ExecutionControl;
 
 /**
  * This class is thread safe.
@@ -13,40 +12,54 @@ import jdk.jshell.spi.ExecutionControl;
  */
 public class ParserImpl implements Parser {
     private File file;
-    public synchronized void setFile(File f) {
-        file = f;
+    public static final int LIMIT = 0x80;
+
+    public synchronized void setFile(final File file) {
+        this.file = file;
     }
 
     /**
-     * This returns the file
+     * This returns the file.
      *
      * @return File
      */
     public synchronized File getFile() {
-        return file;
+        return this.file;
     }
+
+
+    @Override
     public String getContent() throws IOException {
-        FileInputStream i = new FileInputStream(file);
-        String output = "";
+        final FileInputStream fis = new FileInputStream(this.file);
+        final StringBuilder output = new StringBuilder();
         int data;
-        while ((data = i.read()) > 0) {
-            output += (char) data;
+        try {
+            while ((data = fis.read()) > 0) {
+                output.append((char) data);
+            }
+        } finally {
+            fis.close();
         }
-        return output;
+        return output.toString();
     }
-    public String getContentWithoutUnicode() throws IOException {
-        FileInputStream i = new FileInputStream(file);
-        String output = "";
-        int data;
-        while ((data = i.read()) > 0) {
-            if (data < 0x80) {
-                output += (char) data;
+
+    public String getContentWithoutUnicode() throws IOException, IllegalStateException {
+        final FileInputStream fis = new FileInputStream(this.file);
+        final StringBuilder output = new StringBuilder();
+        try {
+            int data;
+            while ((data = fis.read()) > 0) {
+                if (data < LIMIT) {
+                    output.append((char) data);
+                }
+                if (data == 1) {
+                    throw new IllegalStateException("this should never happen with ascii text");
+                }
             }
-            if (data == 1) {
-                throw new RuntimeException("this should never happen with ascii text");
-            }
+        }finally{
+            fis.close();
         }
-        return output;
+        return output.toString();
     }
 
     /**
@@ -58,31 +71,23 @@ public class ParserImpl implements Parser {
     }
 
     @Override
-    public String isContentCorrect() {
-        return null;
-    }
-
-    /**
-     * @return String the old content
-     */
-    @Override
-    public String setContent() {
-        return null;
+    public boolean isContentCorrect() {
+        return false;
     }
 
     @Override
-    public Object assertConsistency() {
+    public boolean assertConsistency() {
         throw new IllegalStateException("not yet implemented");
     }
 
-    public void saveContent(String content) throws Throwable {
-        FileOutputStream o = new FileOutputStream(file);
+    public void saveContent(final String content) throws IOException {
+        final FileOutputStream fos = new FileOutputStream(this.file);
         try {
-            for (int i = 0; i < content.length(); i += 1) {
-                o.write(content.charAt(i));
+            for (int index = 0; index < content.length(); index += 1) {
+                fos.write(content.charAt(index));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } finally {
+            fos.close();
         }
     }
 }

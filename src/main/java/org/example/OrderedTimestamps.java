@@ -9,83 +9,74 @@ package org.example;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
-import java.security.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * OrderedTimestamps helps with timing multiple parts of a method execution
+ * OrderedTimestamps helps with timing multiple parts of a method execution.
  */
-public strictfp class OrderedTimestamps {
-    private HashMap<Date, String> hashMap = new HashMap<>();
-    public java.util.Date creation = null;
+public class OrderedTimestamps {
+    private Map<Date, String> scheduledEvents = new HashMap<>();
+    private Date creationDate = Calendar.getInstance().getTime();
     private int number;
+    public static final String START = "START";
+    public static final String STOP = "STOP";
 
     synchronized public final void setNumber(int number) {
-           this.number = number; // setting the number
+           this.number = number;
     }
 
-    final public int getNumber() {
+    public final int getNumber() {
         return this.number;
     }
 
-    public void setHashMap(HashMap hashMap) {
-        this.hashMap = hashMap;
-    }
-
-    public int getHashMap() {
-     return this.number;
+    public Map<Date,String> getScheduledEvents() {
+     return this.scheduledEvents;
     }
 
     OrderedTimestamps() {
-        this.creation = Calendar.getInstance().getTime(); // init
-        this.hashMap.put(this.creation, "START");
+        this.scheduledEvents.put(this.creationDate, START);
     }
 
-    OrderedTimestamps(int addMinutes) {
-        this.creation.setTime(this.creation.getTime() + addMinutes); // init
-        this.hashMap.put(this.creation, "START");
-
+    OrderedTimestamps(final int addMinutes) {
+        this.creationDate.setTime(this.creationDate.getTime() + addMinutes);
+        this.scheduledEvents.put(this.creationDate, START);
     }
 
-    public void mark(String mark) {
-        this.hashMap.put(Calendar.getInstance().getTime(), mark);
+    public void mark(final String mark) {
+        this.scheduledEvents.put(Calendar.getInstance().getTime(), mark);
         this.number++;
-
-
     }
 
     public void mark() {
-
-        this.hashMap.put(Calendar.getInstance().getTime(), String.valueOf(this.getNumber()));
+        this.scheduledEvents.put(Calendar.getInstance().getTime(), String.valueOf(this.getNumber()));
         this.number++;
     }
 
     public String stop() {
-        this.hashMap.put(Calendar.getInstance().getTime(), "STOP");
-        String result = null;
-        List dates = new LinkedList(); // performance - no copying
-        for (Date d : this.hashMap.keySet()) dates.add(d);
+        this.scheduledEvents.put(Calendar.getInstance().getTime(), STOP);
+        final StringBuilder result = new StringBuilder();
+        final List<Date> dates = new LinkedList<>();
+
+        for (Date d : this.scheduledEvents.keySet()){
+            dates.add(d);
+        }
         dates.sort(Comparator.naturalOrder());
 
-        loop: for (int i = 0; i < dates.size(); i++) {
-            if ( i == 0 ) {
-                result = "";
-            }
-
-            result += "Mark " + this.hashMap.get(dates.get(i)) + " at " + dates.get(i);
+        for (int i = 0; i < dates.size(); i++) {
+            result.append("Mark ").append(this.scheduledEvents.get(dates.get(i)))
+                    .append(" at ").append(dates.get(i));
             if (i < dates.size() - 1) {
-                result += "\n";
-                continue loop;
-            } else {
-                // newline
+                result.append("\n");
+                continue;
             }
         }
 
-        return Optional.ofNullable(result)
+        return Optional.ofNullable(result.toString())
             .map(Stream::of)
             .orElse(Stream.empty())
             .map(Optional::of)
@@ -94,7 +85,5 @@ public strictfp class OrderedTimestamps {
             .sorted()
             .findFirst()
             .get();
-
-        
-}
+    }
 }
